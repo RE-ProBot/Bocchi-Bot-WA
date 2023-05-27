@@ -1,0 +1,141 @@
+const { decryptMedia } = require('@open-wa/wa-automate')
+const mime = require('mime-types');
+const fs = require('fs-extra');
+
+async function vorstellen(a, b, eng) {
+    var { getRang } = a.importFresh('../../lib/rang.js')
+    var isTeam = await getRang('isTeam', a.sender.id, a.db)
+    const isRegistered = await a.db.containsId('registered', a.sender.id)
+    if (!a.isGroupMsg) return await b.reply(a.from, eng.groupOnly(), a.id)
+    if (a.ar[0] == 'add') {
+        if (!a.isGroupAdmins && !isTeam) return await b.reply(a.from, eng.adminOnly(), a.id)
+        try {
+            var vorstellenalter = a.args[2]
+            if (isNaN(vorstellenalter) == true) return await b.reply(a.from,`Bitte verwende ${a.prefix}vt add Name Alter Ort\n\n${vorstellenalter} ist keine Zahl`,a.id)        
+            if (a.quotedMsg) {
+                var vorstellennr = a.quotedMsgObj.sender.id
+                if (a.quotedMsg.isMedia) {
+                    if (a.isQuotedImage) {
+                        vorstellenImg = await decryptMedia(a.quotedMsgObj);
+                        var buf = new Buffer(vorstellenImg, 'base64');
+                        fs.writeFileSync(`../media/profiles/profilePic-${a.quotedMsgObj.sender.id}.png`, buf);
+                        await a.db.addNoCatch('vorstellen', { id: vorstellennr, 'name': a.args[1], 'age': vorstellenalter, 'bundesland': a.args[3], 'bild': 'Bild vorhanden', 'vtaddedby': a.sender.id })
+                        await b.sendTextWithMentions(a.from, `@${vorstellennr.replace('@c.us', '')} Absofort bist du bei uns hinterlegt mit folgenden Daten:\nName: ${a.args[1]}\nAlter: ${vorstellenalter}\nBundesland/Stadt: ${a.args[3]}\nund dem markierten Bild!\n\n*Deine Daten siehst du mit "${a.prefix}vt"*\n\n_Wenn du nicht einverstanden bist, schreibe bitte ${a.prefix}vt delete_`)//stimme (2) +1            
+                    } else {
+                    await a.db.addNoCatch('vorstellen', { id: vorstellennr, 'name': a.args[1], 'age': vorstellenalter, 'bundesland': a.args[3], 'bild': 'Kein Bild', 'vtaddedby': a.sender.id })
+                    await b.sendTextWithMentions(a.from, `@${vorstellennr.replace('@c.us', '')} Absofort bist du bei uns hinterlegt mit folgenden Daten:\nName: ${a.args[1]}\nAlter: ${vorstellenalter}\nBundesland/Stadt: ${a.args[3]}\nAber keinem Bild!\n\n*Deine Daten siehst du mit "${a.prefix}vt"*\n\n_Wenn du nicht einverstanden bist, schreibe bitte ${a.prefix}vt delete_`)//stimme (2) +1
+                    }
+                    } else {
+                    await a.db.addNoCatch('vorstellen', { id: vorstellennr, 'name': a.args[1], 'age': vorstellenalter, 'bundesland': a.args[3], 'bild': 'Kein Bild', 'vtaddedby': a.sender.id })
+                    await b.sendTextWithMentions(a.from, `@${vorstellennr.replace('@c.us', '')} Absofort bist du bei uns hinterlegt mit folgenden Daten:\nName: ${a.args[1]}\nAlter: ${vorstellenalter}\nBundesland/Stadt: ${a.args[3]}\nAber keinem Bild!\n\n*Deine Daten siehst du mit "${a.prefix}vt"*\n\n_Wenn du nicht einverstanden bist, schreibe bitte ${a.prefix}vt delete_`)//stimme (2) +1
+                    }
+            } else {
+                await b.reply(a.from, `Du musst ein Person markieren!`, a.id)
+            }
+        } catch (err) {
+            console.log('[ERROR]', err.message);
+            await b.reply(a.from, `Person bereits hinzugefügt`, a.id)//set umfrage
+        }
+    } else if (a.ar[0] == 'ping') {
+if (!a.isGroupAdmins && !isLeitung) return b.reply(from, 'Du bist kein Admin', id)
+        const vtping = await b.getGroupMembers(a.groupId)
+        let txt = `╔══✪〘 *V O R S T E L L E N* 〙✪══\n\n\`\`\`Ihr seid noch nicht eingetragen im System der Vorstellung.\nEin Admin kann euch nach Vorstellung hinzufügen mit ${a.prefix}vt add _Name Alter Ort_.\`\`\`\n\n`
+        for (let i = 0; i < vtping.length; i++) {
+            var vtpingdb = await a.db.getId('vorstellen', vtping[i].id)
+            const isBocchiBot = await a.db.getId('isBocchiBot', vtping[i].id)
+            if (vtpingdb.name == 'undefined' || vtpingdb.name == undefined) { // || isBocchiBot.typ == 'undefined'
+                txt += '╠➥'
+                txt += ` @${vtping[i].id.replace(/@c.us/g, '')}\n`
+            } else {
+
+            }
+        }
+        txt += `╚═〘 *B O C C H I  B O T* 〙`
+        await b.sendTextWithMentions(a.from, txt)
+    } else if (a.ar[0] == 'regping') {
+if (!a.isGroupAdmins && !isLeitung) return b.reply(from, 'Du bist kein Admin', id)
+        const vtping = await b.getGroupMembers(a.groupId)
+        let txt = `╔══✪〘 *V O R G E S T E L L T* 〙✪══\n\n\`\`\`Diese Personen haben sich bereits Vorgestellt.\`\`\`\n\n`
+        for (let i = 0; i < vtping.length; i++) {
+            var vtpingdb = await a.db.getId('vorstellen', vtping[i].id)
+            if (vtpingdb.name == 'undefined' || vtpingdb.name == undefined) {
+
+            } else {
+                txt += '╠➥'
+                txt += `@${vtping[i].id.replace(/@c.us/g, '')}\n${vtpingdb.name}, ${vtpingdb.age} Jahre, ${vtpingdb.bild}\n\n`
+            }
+        }
+        txt += `╚═〘 *B O C C H I  B O T* 〙
+Ein Admin kann euch nach Vorstellung hinzufügen mit ${a.prefix}vt add _Name Alter Ort_`
+        await b.sendTextWithMentions(a.from, txt)
+    } else if (a.ar[0] == 'upgrade') {
+        var vorstellenupgradeid = a.sender.id
+        const vorstellen = await a.db.getId('vorstellen', vorstellenupgradeid)
+        try {
+            if (vorstellen.name == 'undefined' || vorstellen.name == undefined) {
+                await b.reply(a.from, `Du bist nicht gespeichert im System der Vorstellung.`, a.id)
+            } else {
+                cd = 25920000000
+                timername = 'vtupgrade'
+                const timervtupgrade = await a.db.teamContains2('timer', { 'id': a.sender.id, typ: timername })
+                if (timervtupgrade !== undefined && cd - (Date.now() - timervtupgrade) > 0) {
+                    const time = a.ms(cd - (Date.now() - timervtupgrade))
+                    await b.reply(a.from, eng.daily(time), a.id)
+                } else {
+                    var neuesalter = Math.floor(parseInt(vorstellen.age) + 1)
+                    await a.db.updatevorstellen(a.sender.id, neuesalter)
+                    await b.reply(a.from, `Alter erfolgreich von ${vorstellen.age} geändert zu ${neuesalter}.`, a.id)
+                    await a.db.removetimer('timer', { 'id': a.sender.id, 'typ': timername })
+                    await a.daily.addLimit(timername, a.sender.id)
+                }
+            }
+        } catch (err) {
+            await b.sendText(a.from, `Error ${err}`)
+
+        }
+    } else if (a.ar[0] == 'delete') {
+        var vorstellendeleteid;
+        if (!a.ar[1]) {
+            vorstellendeleteid = a.sender.id
+        } else {
+            if (!isTeam) return await b.reply(a.from, eng.teamOnly(), a.id)
+            vorstellendeleteid = a.q.replace(/^0+/, '49').replace(/\D/g, '') + '@c.us'
+        }
+        const vorstellen = await a.db.getId('vorstellen', vorstellendeleteid)
+        try {
+            if (vorstellen.name == 'undefined' || vorstellen.name == undefined) {
+                await b.reply(a.from, `Du bist nicht gespeichert im System der Vorstellung.`, a.id)
+            } else {
+                await a.db.removeId('vorstellen', vorstellendeleteid)
+                a.fs.unlink(`../media/profiles/profilePic-${vorstellendeleteid}.png`);
+                await b.reply(a.from, `Erfolgreich Name, Alter und Ort/Bundesland und Bild gelöscht!`, a.id)
+            }
+        } catch (err) {
+            await b.sendText(a.from, `Error ${err}`)
+
+        }
+    } else {
+        var ppic = ''
+        var vorstellenid;
+        if (!a.ar[0]) {
+            vorstellenid = a.sender.id
+        } else {
+            if (!isTeam) return await b.reply(a.from, eng.teamOnly(), a.id)
+            vorstellenid = a.q.replace(/^0+/, '49').replace(/\D/g, '') + '@c.us'
+        }
+        const vorstellen = await a.db.getId('vorstellen', vorstellenid)
+        if (vorstellen.name == 'undefined' || vorstellen.name == undefined) {
+            await b.reply(a.from, `Du bist nicht gespeichert im System der Vorstellung.`, a.id)
+        } else {
+            try {
+                await b.sendImage(a.from, `../media/profiles/profilePic-${vorstellenid}.png`, "ppic.png", `Deine gespeicherten Daten!\nName: ${vorstellen.name}\nAlter: ${vorstellen.age}\nBundesland: ${vorstellen.bundesland}\n\n\`\`\`Wenn das alter falsch ist Probier ${a.prefix}vt upgrade\`\`\``, a.id)
+            } catch (err) {
+                await b.reply(a.from, `Deine gespeicherten Daten!\nName: ${vorstellen.name}\nAlter: ${vorstellen.age}\nBundesland: ${vorstellen.bundesland}\n\n\`\`\`Wenn das alter falsch ist Probier ${a.prefix}vt upgrade\`\`\``, a.id)
+            }
+        }
+    }
+}
+
+module.exports = {
+    vorstellen
+}
